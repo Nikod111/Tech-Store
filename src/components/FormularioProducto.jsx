@@ -1,42 +1,94 @@
+
 import { useState } from "react";
 
-function FormularioProducto() {
+const API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
+
+export default function FormularioProducto() {
   const [producto, setProducto] = useState({
     id: "",
     nombre: "",
     precio: "",
     stock: "",
-    imagen: "",
   });
 
-  const handleChange = (e) => {
+  const [imagen, setImagen] = useState(null);
+  const [cargando, setCargando] = useState(false);
+
+  function handleChange(e) {
     const { name, value } = e.target;
 
-    setProducto({
-      ...producto,
+    setProducto((prev) => ({
+      ...prev,
       [name]: value,
-    });
-  };
+    }));
+  }
 
-  const handleSubmit = (e) => {
+  async function handleSubmit(e) {
     e.preventDefault();
 
-    console.log("Información enviada:", {
-      ...producto,
-      id: Number(producto.id),
-      precio: Number(producto.precio),
-      stock: Number(producto.stock),
-    });
-  };
+    if (!imagen) {
+      alert("Seleccioná una imagen.");
+      return;
+    }
+
+    if (!API_KEY) {
+      alert("Falta configurar la API Key de ImgBB.");
+      return;
+    }
+
+    setCargando(true);
+
+    try {
+      console.log("Subiendo imagen a Imgbb...");
+
+      const formData = new FormData();
+      formData.append("image", imagen);
+
+      const respuesta = await fetch(
+        `https://api.imgbb.com/1/upload?key=${API_KEY}`,
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      const resultado = await respuesta.json();
+
+      if (!respuesta.ok || !resultado.success) {
+        throw new Error(
+          resultado.error?.message || "No se pudo subir la imagen."
+        );
+      }
+
+      const urlImagen = resultado.data.url;
+
+      console.log("Imagen subida con éxito.");
+      console.log("URL:", urlImagen);
+
+      const productoCompleto = {
+        ...producto,
+        urlImagen,
+      };
+
+      console.log(
+        "Enviando los siguientes datos COMPLETOS a la API:"
+      );
+      console.log(productoCompleto);
+    } catch (error) {
+      console.error("Error:", error.message);
+      alert("No se pudo completar el envío: " + error.message);
+    } finally {
+      setCargando(false);
+    }
+  }
 
   return (
     <form onSubmit={handleSubmit}>
-      <h2>Alta de nuevo producto</h2>
+      <h2>Agregar producto</h2>
 
       <div>
         <label htmlFor="id">ID:</label>
         <input
-          type="number"
           id="id"
           name="id"
           value={producto.id}
@@ -48,7 +100,6 @@ function FormularioProducto() {
       <div>
         <label htmlFor="nombre">Nombre:</label>
         <input
-          type="text"
           id="nombre"
           name="nombre"
           value={producto.nombre}
@@ -60,13 +111,13 @@ function FormularioProducto() {
       <div>
         <label htmlFor="precio">Precio:</label>
         <input
-          type="number"
           id="precio"
           name="precio"
+          type="number"
+          min="0"
+          step="any"
           value={producto.precio}
           onChange={handleChange}
-          min="0"
-          step="0.01"
           required
         />
       </div>
@@ -74,32 +125,34 @@ function FormularioProducto() {
       <div>
         <label htmlFor="stock">Stock:</label>
         <input
-          type="number"
           id="stock"
           name="stock"
+          type="number"
+          min="0"
+          step="1"
           value={producto.stock}
           onChange={handleChange}
-          min="0"
           required
         />
       </div>
 
       <div>
-        <label htmlFor="imagen">URL de imagen:</label>
+        <label htmlFor="imagen">Imagen del producto:</label>
         <input
-          type="url"
           id="imagen"
           name="imagen"
-          value={producto.imagen}
-          onChange={handleChange}
-          placeholder="https://ejemplo.com/imagen.jpg"
+          type="file"
+          accept="image/*"
+          onChange={(e) =>
+            setImagen(e.target.files?.[0] ?? null)
+          }
           required
         />
       </div>
 
-      <button type="submit">Enviar producto</button>
+      <button type="submit" disabled={cargando}>
+        {cargando ? "Subiendo imagen..." : "Crear producto"}
+      </button>
     </form>
   );
 }
-
-export default FormularioProducto;
