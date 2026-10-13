@@ -1,0 +1,34 @@
+[
+  {
+    "id": 1,
+    "nombre": "Auriculares Gamer",
+    "precio": 45000,
+    "descripcion": "Auriculares con sonido envolvente y micrófono integrado.",
+    "imagen": "https://images.bidcom.com.ar/resize?src=https://static.bidcom.com.ar/publicacionesML/productos/ABLUE104/1000x1000-ABLUE104.jpg&w=400&q=100",
+    "categoria": "Audio"
+  },
+  {
+    "id": 2,
+    "nombre": "Teclado Mecánico",
+    "precio": 65000,
+    "descripcion": "Teclado mecánico retroiluminado para jugar y trabajar.",
+    "imagen": "https://acdn-us.mitiendanube.com/stores/001/593/734/products/ganon-80-ia-01-9963b20821425b445c17803251220817-1024-1024.webp",
+    "categoria": "Periféricos"
+  },
+  {
+    "id": 3,
+    "nombre": "Mouse Gamer",
+    "precio": 28000,
+    "descripcion": "Mouse óptico de alta precisión con diseño ergonómico.",
+    "imagen": "https://arrichetta.com.ar/wp-content/uploads/2025/06/Razer-Cobra-Pro-Lightweight-Wireless-PC-Gaming-Mouse-with-Razer-Chroma-RGB-Customizable-Controls-77g-Black_d00c5c3d-f3fc-48a6-b1d8-49b223778807.c72c5b3a425efcf1940f833032f8b274-800x800.jpeg",
+    "categoria": "Periféricos"
+  },
+  {
+    "id": 4,
+    "nombre": "Monitor Full HD",
+    "precio": 185000,
+    "descripcion": "Monitor Full HD ideal para estudio, trabajo y entretenimiento.",
+    "imagen": "https://img.inovamusicnet.com/p/cmo9bhsrs142q04kynn29502x/50ca8f78813f4bc2/640",
+    "categoria": "Monitores"
+  }
+]
