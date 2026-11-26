@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { obtenerProducto } from "../services/productos";
+import { formatoPrecio } from "../utils/formato";
+import Loader from "../components/Loader";
 
 export default function ProductoDetalle() {
   const { id } = useParams();
@@ -8,39 +11,41 @@ export default function ProductoDetalle() {
   const [producto, setProducto] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
-  const [agregado, setAgregado] = useState(false);
+  const [mensaje, setMensaje] = useState(null);
 
   useEffect(() => {
     let activo = true;
     setCargando(true);
     setError("");
 
-    fetch("/productos.json")
-      .then((respuesta) => {
-        if (!respuesta.ok) throw new Error("No se pudo cargar el catálogo.");
-        return respuesta.json();
-      })
-      .then((productos) => {
-        const encontrado = productos.find((item) => item.id === Number(id));
-        if (!encontrado) throw new Error("No encontramos ese producto.");
-        if (activo) setProducto(encontrado);
-      })
+    obtenerProducto(id)
+      .then((p) => { if (activo) setProducto(p); })
       .catch((err) => {
-        if (activo) setError(err.message);
+        if (activo) setError(err.message.includes("encontramos") ? err.message : "No se pudo cargar el producto.");
       })
-      .finally(() => {
-        if (activo) setCargando(false);
-      });
+      .finally(() => { if (activo) setCargando(false); });
 
     return () => { activo = false; };
   }, [id]);
 
-  if (cargando) return <p className="status-message">Cargando producto...</p>;
+  if (cargando) return <Loader texto="Cargando producto..." />;
   if (error) {
-    return <section className="empty-state"><h2>Producto no disponible</h2><p>{error}</p><Link className="button" to="/productos">Volver al catálogo</Link></section>;
+    return (
+      <section className="empty-state">
+        <h2>Producto no disponible</h2>
+        <p>{error}</p>
+        <Link className="button" to="/productos">Volver al catálogo</Link>
+      </section>
+    );
   }
 
-  const precio = producto.precio.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+  const sinStock = Number(producto.stock) <= 0;
+  const handleAgregar = () => {
+    const ok = addToCart(producto);
+    setMensaje(ok
+      ? { tipo: "ok", texto: "✓ Producto agregado al carrito." }
+      : { tipo: "error", texto: "No hay más stock disponible de este producto." });
+  };
 
   return (
     <section className="detail-page">
@@ -49,14 +54,15 @@ export default function ProductoDetalle() {
         <div className="detail-image"><img src={producto.imagen} alt={producto.nombre} /></div>
         <div className="detail-info">
           <span className="category-tag">{producto.categoria}</span>
+          {producto.oferta && <span className="category-tag tag-offer">OFERTA</span>}
           <h2>{producto.nombre}</h2>
           <p>{producto.descripcion}</p>
-          <strong className="detail-price">{precio}</strong>
-          <p className="muted">Precio de muestra para la pre-entrega.</p>
-          <button className="button" onClick={() => { addToCart(producto); setAgregado(true); }}>
-            Agregar al carrito
-          </button>
-          {agregado && <p className="success-message" role="status">✓ Producto agregado al carrito.</p>}
+          <strong className="detail-price">{formatoPrecio(producto.precio)}</strong>
+          <p className="muted">{sinStock ? "Sin stock" : `Stock disponible: ${producto.stock}`}</p>
+          <button className="button" onClick={handleAgregar} disabled={sinStock}>Agregar al carrito</button>
+          {mensaje && (
+            <p className={mensaje.tipo === "ok" ? "success-message" : "field-error"} role="status">{mensaje.texto}</p>
+          )}
         </div>
       </div>
     </section>

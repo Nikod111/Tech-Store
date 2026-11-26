@@ -1,157 +1,90 @@
-
 import { useState } from "react";
 
-const API_KEY = import.meta.env.VITE_IMGBB_API_KEY;
+const VACIO = { nombre: "", precio: "", stock: "", categoria: "", descripcion: "", imagen: "", oferta: false };
 
-export default function FormularioProducto() {
-  const [producto, setProducto] = useState({
-    id: "",
-    nombre: "",
-    precio: "",
-    stock: "",
-  });
+function validar(datos) {
+  const errores = {};
+  if (!datos.nombre.trim()) errores.nombre = "El nombre es obligatorio.";
+  else if (datos.nombre.trim().length < 3) errores.nombre = "El nombre debe tener al menos 3 caracteres.";
+  if (datos.precio === "" || Number(datos.precio) <= 0) errores.precio = "El precio debe ser mayor a 0.";
+  if (datos.stock === "" || !Number.isInteger(Number(datos.stock)) || Number(datos.stock) < 0)
+    errores.stock = "El stock debe ser un número entero mayor o igual a 0.";
+  if (!datos.categoria.trim()) errores.categoria = "La categoría es obligatoria.";
+  if (datos.descripcion.trim().length < 10) errores.descripcion = "La descripción debe tener al menos 10 caracteres.";
+  if (!datos.imagen.trim()) errores.imagen = "La URL de la imagen es obligatoria.";
+  else if (!/^(https?:\/\/|\/|\.\.?\/)/.test(datos.imagen.trim()))
+    errores.imagen = "Usá una URL (http://...) o una ruta local (/images/... o ../images/...).";
+  return errores;
+}
 
-  const [imagen, setImagen] = useState(null);
-  const [cargando, setCargando] = useState(false);
+export default function FormularioProducto({ inicial, onGuardar, textoBoton = "Guardar producto" }) {
+  const [datos, setDatos] = useState({ ...VACIO, ...inicial });
+  const [errores, setErrores] = useState({});
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState("");
 
-  function handleChange(e) {
-    const { name, value } = e.target;
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setDatos((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    setErrores((prev) => ({ ...prev, [name]: undefined }));
+  };
 
-    setProducto((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  }
-
-  async function handleSubmit(e) {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    const nuevosErrores = validar(datos);
+    setErrores(nuevosErrores);
+    if (Object.keys(nuevosErrores).length > 0) return;
 
-    if (!imagen) {
-      alert("Seleccioná una imagen.");
-      return;
-    }
-
-    if (!API_KEY) {
-      alert("Falta configurar la API Key de ImgBB.");
-      return;
-    }
-
-    setCargando(true);
-
+    setEnviando(true);
+    setErrorEnvio("");
     try {
-      console.log("Subiendo imagen a Imgbb...");
-
-      const formData = new FormData();
-      formData.append("image", imagen);
-
-      const respuesta = await fetch(
-        `https://api.imgbb.com/1/upload?key=${API_KEY}`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const resultado = await respuesta.json();
-
-      if (!respuesta.ok || !resultado.success) {
-        throw new Error(
-          resultado.error?.message || "No se pudo subir la imagen."
-        );
-      }
-
-      const urlImagen = resultado.data.url;
-
-      console.log("Imagen subida con éxito.");
-      console.log("URL:", urlImagen);
-
-      const productoCompleto = {
-        ...producto,
-        urlImagen,
-      };
-
-      console.log(
-        "Enviando los siguientes datos COMPLETOS a la API:"
-      );
-      console.log(productoCompleto);
-    } catch (error) {
-      console.error("Error:", error.message);
-      alert("No se pudo completar el envío: " + error.message);
-    } finally {
-      setCargando(false);
+      await onGuardar({
+        nombre: datos.nombre.trim(),
+        precio: Number(datos.precio),
+        stock: Number(datos.stock),
+        categoria: datos.categoria.trim(),
+        descripcion: datos.descripcion.trim(),
+        imagen: datos.imagen.trim(),
+        oferta: Boolean(datos.oferta),
+      });
+    } catch {
+      setErrorEnvio("No se pudo guardar el producto. Revisá tu conexión o tus permisos.");
+      setEnviando(false);
     }
-  }
+  };
+
+  const campo = (name, label, props = {}) => (
+    <div className={`form-field${errores[name] ? " has-error" : ""}`}>
+      <label htmlFor={name}>{label}</label>
+      <input id={name} name={name} value={datos[name]} onChange={handleChange} aria-invalid={!!errores[name]} {...props} />
+      {errores[name] && <span className="field-error">{errores[name]}</span>}
+    </div>
+  );
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Agregar producto</h2>
-
-      <div>
-        <label htmlFor="id">ID:</label>
-        <input
-          id="id"
-          name="id"
-          value={producto.id}
-          onChange={handleChange}
-          required
-        />
+    <form className="form-card" onSubmit={handleSubmit} noValidate>
+      {errorEnvio && <p className="alert alert-error" role="alert">{errorEnvio}</p>}
+      {campo("nombre", "Nombre *")}
+      <div className="form-row">
+        {campo("precio", "Precio (ARS) *", { type: "number", min: "1", step: "any" })}
+        {campo("stock", "Stock *", { type: "number", min: "0", step: "1" })}
       </div>
-
-      <div>
-        <label htmlFor="nombre">Nombre:</label>
-        <input
-          id="nombre"
-          name="nombre"
-          value={producto.nombre}
-          onChange={handleChange}
-          required
-        />
+      {campo("categoria", "Categoría *", { placeholder: "Audio, Periféricos, Monitores..." })}
+      <div className={`form-field${errores.descripcion ? " has-error" : ""}`}>
+        <label htmlFor="descripcion">Descripción *</label>
+        <textarea id="descripcion" name="descripcion" rows="3" value={datos.descripcion} onChange={handleChange} aria-invalid={!!errores.descripcion} />
+        {errores.descripcion && <span className="field-error">{errores.descripcion}</span>}
       </div>
-
-      <div>
-        <label htmlFor="precio">Precio:</label>
-        <input
-          id="precio"
-          name="precio"
-          type="number"
-          min="0"
-          step="any"
-          value={producto.precio}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="stock">Stock:</label>
-        <input
-          id="stock"
-          name="stock"
-          type="number"
-          min="0"
-          step="1"
-          value={producto.stock}
-          onChange={handleChange}
-          required
-        />
-      </div>
-
-      <div>
-        <label htmlFor="imagen">Imagen del producto:</label>
-        <input
-          id="imagen"
-          name="imagen"
-          type="file"
-          accept="image/*"
-          onChange={(e) =>
-            setImagen(e.target.files?.[0] ?? null)
-          }
-          required
-        />
-      </div>
-
-      <button type="submit" disabled={cargando}>
-        {cargando ? "Subiendo imagen..." : "Crear producto"}
+      {campo("imagen", "URL de la imagen *", { placeholder: "https://.../imagen.webp" })}
+      {datos.imagen && !errores.imagen && (
+        <img className="image-preview" src={datos.imagen} alt="Vista previa" onError={(e) => { e.currentTarget.style.display = "none"; }} onLoad={(e) => { e.currentTarget.style.display = "block"; }} />
+      )}
+      <label className="checkbox-field">
+        <input type="checkbox" name="oferta" checked={datos.oferta} onChange={handleChange} />
+        Producto en oferta (se muestra en Inicio)
+      </label>
+      <button className="button" type="submit" disabled={enviando}>
+        {enviando ? "Guardando..." : textoBoton}
       </button>
     </form>
   );

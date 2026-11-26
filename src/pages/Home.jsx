@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import ItemListContainer from "../components/ItemListContainer";
 
 export default function Home() {
   return (
@@ -23,6 +24,9 @@ export default function Home() {
         <article><span>✓</span><div><h3>Compra simple</h3><p>Encontrá lo que buscás fácilmente.</p></div></article>
         <article><span>♡</span><div><h3>Atención cercana</h3><p>Estamos para ayudarte.</p></div></article>
       </section>
+
+      <ItemListContainer soloOferta eyebrow="APROVECHÁ" titulo="Productos en oferta" />
+
       <section className="home-cta">
         <div><p className="eyebrow">¿LISTO PARA EMPEZAR?</p><h2>Tu próximo favorito te espera.</h2></div>
         <Link className="button button-light" to="/productos">Ver catálogo</Link>

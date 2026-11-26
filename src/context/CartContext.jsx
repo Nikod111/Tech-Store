@@ -4,50 +4,44 @@ const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const [cart, setCart] = useState([]);
+  const [cupon, setCupon] = useState(null); // { codigo, descuento }
 
+  // Devuelve true si se pudo agregar (respeta el stock disponible).
   const addToCart = (producto, cantidad = 1) => {
-    setCart((carritoActual) => {
-      const existente = carritoActual.find((item) => item.id === producto.id);
+    const enCarrito = cart.find((item) => item.id === producto.id)?.cantidad ?? 0;
+    const stock = Number(producto.stock ?? Infinity);
+    if (enCarrito + cantidad > stock) return false;
 
+    setCart((actual) => {
+      const existente = actual.find((item) => item.id === producto.id);
       if (existente) {
-        return carritoActual.map((item) =>
-          item.id === producto.id
-            ? { ...item, cantidad: item.cantidad + cantidad }
-            : item
+        return actual.map((item) =>
+          item.id === producto.id ? { ...item, cantidad: item.cantidad + cantidad } : item
         );
       }
-
-      return [...carritoActual, { ...producto, cantidad }];
+      return [...actual, { ...producto, cantidad }];
     });
+    return true;
   };
 
-  const removeFromCart = (id) => {
-    setCart((carritoActual) =>
-      carritoActual.filter((item) => item.id !== id)
-    );
+  const removeFromCart = (id) => setCart((actual) => actual.filter((item) => item.id !== id));
+
+  const clearCart = () => {
+    setCart([]);
+    setCupon(null);
   };
 
-  const clearCart = () => setCart([]);
-
-  const totalCantidad = useMemo(
-    () => cart.reduce((total, item) => total + item.cantidad, 0),
-    [cart]
-  );
-
-  const totalPrecio = useMemo(
-    () => cart.reduce((total, item) => total + item.precio * item.cantidad, 0),
-    [cart]
-  );
+  const totalCantidad = useMemo(() => cart.reduce((t, item) => t + item.cantidad, 0), [cart]);
+  const subtotal = useMemo(() => cart.reduce((t, item) => t + item.precio * item.cantidad, 0), [cart]);
+  const montoDescuento = cupon ? Math.round((subtotal * cupon.descuento) / 100) : 0;
+  const totalPrecio = subtotal - montoDescuento;
 
   return (
     <CartContext.Provider
       value={{
-        cart,
-        addToCart,
-        removeFromCart,
-        clearCart,
-        totalCantidad,
-        totalPrecio
+        cart, addToCart, removeFromCart, clearCart,
+        totalCantidad, subtotal, montoDescuento, totalPrecio,
+        cupon, setCupon,
       }}
     >
       {children}
@@ -57,8 +51,6 @@ export function CartProvider({ children }) {
 
 export function useCart() {
   const context = useContext(CartContext);
-  if (!context) {
-    throw new Error("useCart debe utilizarse dentro de CartProvider");
-  }
+  if (!context) throw new Error("useCart debe utilizarse dentro de CartProvider");
   return context;
 }

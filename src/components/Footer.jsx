@@ -1,8 +1,4 @@
-const equipo = [
-  { nombre: "Nicolás Domínguez", rol: "Desarrollo web" },
-  { nombre: "Iván García", rol: "Diseño y experiencia de usuario" },
-  { nombre: "Florencia López", rol: "Contenido y comunicación" }
-];
+import { Link } from "react-router-dom";
 
 export default function Footer() {
   return (
@@ -11,21 +7,15 @@ export default function Footer() {
         <section>
           <h2>Tech Store</h2>
           <p>Somos una tienda dedicada a acercarte productos tecnológicos para estudiar, trabajar y disfrutar.</p>
-          <p className="footer-contact">Contacto: hola@techstore.example</p>
         </section>
         <section>
-          <h3>Nuestro equipo</h3>
-          <div className="team-grid">
-            {equipo.map((persona) => (
-              <article className="team-card" key={persona.nombre}>
-                <div className="avatar" aria-hidden="true">{persona.nombre.charAt(0)}</div>
-                <div>
-                  <h4>{persona.nombre}</h4>
-                  <p>{persona.rol}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+          <h3>Navegación</h3>
+          <ul className="footer-links">
+            <li><Link to="/productos">Productos</Link></li>
+            <li><Link to="/nosotros">Nosotros</Link></li>
+            <li><Link to="/carrito">Carrito</Link></li>
+          </ul>
+          <p className="footer-contact">Contacto: hola@techstore.example</p>
         </section>
       </div>
       <div className="footer-bottom">© 2026 Tech Store · Todos los derechos reservados.</div>

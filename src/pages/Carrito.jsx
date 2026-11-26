@@ -1,11 +1,34 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-
-const formatoPrecio = (precio) =>
-  precio.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+import { buscarCupon } from "../services/cupones";
+import { formatoPrecio } from "../utils/formato";
 
 export default function Carrito() {
-  const { cart, removeFromCart, clearCart, totalCantidad, totalPrecio } = useCart();
+  const {
+    cart, removeFromCart, clearCart, totalCantidad,
+    subtotal, montoDescuento, totalPrecio, cupon, setCupon,
+  } = useCart();
+  const [codigo, setCodigo] = useState("");
+  const [estadoCupon, setEstadoCupon] = useState({ cargando: false, error: "" });
+
+  const aplicarCupon = async (e) => {
+    e.preventDefault();
+    if (!codigo.trim()) return;
+    setEstadoCupon({ cargando: true, error: "" });
+    try {
+      const encontrado = await buscarCupon(codigo);
+      if (!encontrado) {
+        setEstadoCupon({ cargando: false, error: "El cupón no existe." });
+        return;
+      }
+      setCupon({ codigo: encontrado.codigo, descuento: Number(encontrado.descuento) });
+      setCodigo("");
+      setEstadoCupon({ cargando: false, error: "" });
+    } catch {
+      setEstadoCupon({ cargando: false, error: "No se pudo validar el cupón. Intentá de nuevo." });
+    }
+  };
 
   if (cart.length === 0) {
     return (
@@ -45,11 +68,27 @@ export default function Carrito() {
         </div>
         <aside className="order-summary">
           <h3>Resumen del pedido</h3>
-          <div><span>Productos ({totalCantidad})</span><span>{formatoPrecio(totalPrecio)}</span></div>
+          <div><span>Productos ({totalCantidad})</span><span>{formatoPrecio(subtotal)}</span></div>
+          {cupon && (
+            <div className="discount-line">
+              <span>Cupón {cupon.codigo} (-{cupon.descuento}%)</span>
+              <span>-{formatoPrecio(montoDescuento)}</span>
+            </div>
+          )}
           <div><span>Envío</span><span>A coordinar</span></div>
           <hr />
           <div className="summary-total"><strong>Total</strong><strong>{formatoPrecio(totalPrecio)}</strong></div>
-          <p className="muted">Esta pre-entrega no procesa pagos reales.</p>
+
+          <form className="coupon-form" onSubmit={aplicarCupon}>
+            <label htmlFor="cupon" className="sr-only">Código de cupón</label>
+            <input id="cupon" placeholder="Código de cupón" value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+            <button className="button button-small" type="submit" disabled={estadoCupon.cargando}>
+              {estadoCupon.cargando ? "..." : "Aplicar"}
+            </button>
+          </form>
+          {estadoCupon.error && <p className="field-error">{estadoCupon.error}</p>}
+          {cupon && <button className="text-button" onClick={() => setCupon(null)}>Quitar cupón</button>}
+
           <Link className="button button-full" to="/productos">Seguir comprando</Link>
         </aside>
       </div>

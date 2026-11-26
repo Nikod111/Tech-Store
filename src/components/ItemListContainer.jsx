@@ -1,47 +1,45 @@
 import { useEffect, useState } from "react";
 import Item from "./Item";
+import Loader from "./Loader";
+import { obtenerProductos } from "../services/productos";
 
-export default function ItemListContainer() {
+export default function ItemListContainer({ soloOferta = false, eyebrow = "NUESTRO CATÁLOGO", titulo = "Todos los productos" }) {
   const [productos, setProductos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let activo = true;
+    setCargando(true);
+    setError("");
 
-    fetch("/productos.json")
-      .then((respuesta) => {
-        if (!respuesta.ok) throw new Error("No se pudieron cargar los productos.");
-        return respuesta.json();
-      })
-      .then((datos) => {
-        if (activo) setProductos(datos);
-      })
-      .catch((err) => {
-        if (activo) setError(err.message || "Ocurrió un error al cargar el catálogo.");
-      })
-      .finally(() => {
-        if (activo) setCargando(false);
-      });
+    obtenerProductos({ soloOferta })
+      .then((datos) => { if (activo) setProductos(datos); })
+      .catch(() => { if (activo) setError("No se pudieron cargar los productos. Intentá nuevamente más tarde."); })
+      .finally(() => { if (activo) setCargando(false); });
 
     return () => { activo = false; };
-  }, []);
-
-  if (cargando) return <p className="status-message">Cargando productos...</p>;
-  if (error) return <p className="status-message error-message">{error}</p>;
+  }, [soloOferta]);
 
   return (
-    <section>
+    <section className="item-list">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">NUESTRO CATÁLOGO</p>
-          <h2>Todos los productos</h2>
+          <p className="eyebrow">{eyebrow}</p>
+          <h2>{titulo}</h2>
         </div>
-        <span className="muted">{productos.length} productos</span>
+        {!cargando && !error && <span className="muted">{productos.length} productos</span>}
       </div>
-      <div className="products-grid">
-        {productos.map((producto) => <Item key={producto.id} producto={producto} />)}
-      </div>
+      {cargando && <Loader texto="Cargando productos..." />}
+      {error && <p className="alert alert-error" role="alert">{error}</p>}
+      {!cargando && !error && productos.length === 0 && (
+        <p className="status-message">No hay productos para mostrar por ahora.</p>
+      )}
+      {!cargando && !error && productos.length > 0 && (
+        <div className="products-grid">
+          {productos.map((producto) => <Item key={producto.id} producto={producto} />)}
+        </div>
+      )}
     </section>
   );
 }
